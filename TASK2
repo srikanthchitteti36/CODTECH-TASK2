@@ -1,0 +1,160 @@
+// DESIGN CODE
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+entity FSM_example is
+    Port (
+        clk   : in  std_logic;
+        reset : in  std_logic;
+        x     : in  std_logic;
+        y     : in  std_logic;
+        z     : out std_logic
+    );
+end entity FSM_example;
+
+architecture Behavioral of FSM_example is
+    -- Define FSM states
+    type state_type is (A, B, C);
+    signal state, next_state : state_type;
+
+begin
+    -- State register and next_state logic
+    process (clk, reset)
+    begin
+        if reset = '1' then
+            state <= A;  -- Initial state
+        elsif rising_edge(clk) then
+            state <= next_state;
+        end if;
+    end process;
+
+    -- Next state logic and output z logic
+    process (state, x, y)
+    begin
+        case state is
+            when A =>
+                if x = '0' then
+                    next_state <= B;
+                elsif x = '1' then
+                    next_state <= C;
+                else
+                    next_state <= A;  -- Default transition
+                end if;
+                
+            when B =>
+                if y = '0' then
+                    next_state <= A;
+                elsif y = '1' then
+                    next_state <= C;
+                else
+                    next_state <= B;  -- Default transition
+                end if;
+                
+            when C =>
+                next_state <= C;  -- Stay in state C
+        end case;
+
+        -- Output z logic
+        if state = C then
+            z <= '1';
+        else
+            z <= '0';
+        end if;
+    end process;
+
+end architecture Behavioral;
+
+
+//TESTBENCH CODE
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+entity fsm_tb is
+end entity fsm_tb;
+
+architecture Behavioral of fsm_tb is
+    -- Constants and signals
+    constant clk_period : time := 10 ns;
+    
+    signal clk   : std_logic := '0';
+    signal reset : std_logic := '0';
+    signal x     : std_logic := '0';
+    signal y     : std_logic := '0';
+    signal z     : std_logic;
+
+    -- Instantiate the FSM
+    component FSM_example
+        Port (
+            clk   : in  std_logic;
+            reset : in  std_logic;
+            x     : in  std_logic;
+            y     : in  std_logic;
+            z     : out std_logic
+        );
+    end component;
+
+begin
+    -- Clock process
+    process
+    begin
+        while now < 100 ns loop
+            clk <= '0';
+            wait for clk_period / 2;
+            clk <= '1';
+            wait for clk_period / 2;
+        end loop;
+        wait;
+    end process;
+
+    -- Reset process
+    process
+    begin
+        reset <= '1';
+        wait for 20 ns;
+        reset <= '0';
+        wait;
+    end process;
+
+    -- Stimulus process
+    process
+    begin
+        wait for 30 ns;  -- Wait for initial stabilization
+        
+        -- Test case 1: x = '0', y = '0'
+        x <= '0'; y <= '0';
+        wait for 20 ns;
+        assert z = '0' report "Test case 1 failed" severity error;
+        
+        -- Test case 2: x = '1', y = '0'
+        x <= '1'; y <= '0';
+        wait for 20 ns;
+        assert z = '0' report "Test case 2 failed" severity error;
+        
+        -- Test case 3: x = '0', y = '1'
+        x <= '0'; y <= '1';
+        wait for 20 ns;
+        assert z = '0' report "Test case 3 failed" severity error;
+        
+        -- Test case 4: x = '1', y = '1'
+        x <= '1'; y <= '1';
+        wait for 20 ns;
+        assert z = '1' report "Test case 4 failed" severity error;
+        
+        -- Add more test cases as needed
+        
+        wait;
+    end process;
+
+    -- Instantiate the FSM
+    dut: FSM_example
+        port map (
+            clk   => clk,
+            reset => reset,
+            x     => x,
+            y     => y,
+            z     => z
+        );
+
+end architecture Behavioral;
